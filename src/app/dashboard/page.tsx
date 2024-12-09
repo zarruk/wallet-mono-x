@@ -45,6 +45,7 @@ interface TransactionsResponse {
     total_pages: number;
     total_items: number;
   };
+  error?: string;
 }
 
 interface MonoCard {
@@ -284,7 +285,10 @@ export default function DashboardPage() {
             console.log('Transactions data:', JSON.stringify(transactionsData, null, 2));
 
             if (!response.ok) {
-              throw new Error(transactionsData.error || 'Error al obtener las transacciones');
+              const errorMessage = response.status === 422 
+                ? 'Error en el formato de la solicitud'
+                : 'Error al obtener las transacciones';
+              throw new Error(errorMessage);
             }
 
             setTransactions(transactionsData.transactions || []);

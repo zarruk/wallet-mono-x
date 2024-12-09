@@ -14,7 +14,22 @@ module.exports = {
           pink: '#FF3DFF',   // Color de acento rosado
           gray: '#2A2A3B',   // Color gris para elementos secundarios
         }
-      }
+      },
+      fontFamily: {
+        sans: [
+          'system-ui',
+          '-apple-system',
+          'BlinkMacSystemFont',
+          '"Segoe UI"',
+          'Roboto',
+          'Oxygen',
+          'Ubuntu',
+          'Cantarell',
+          '"Open Sans"',
+          '"Helvetica Neue"',
+          'sans-serif',
+        ],
+      },
     },
   },
   plugins: [],

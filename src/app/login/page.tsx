@@ -19,19 +19,24 @@ type LoginFormData = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
   const { register, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema)
   });
 
   const onSubmit = async (data: LoginFormData) => {
     try {
+      setIsLoading(true);
+      setMessage({ type: 'success', text: 'Verificando credenciales...' });
+
       const { data: userData, error: userError } = await supabase
         .from('wallet_mono_ix_users')
-        .select('email, password_hash')
+        .select('*')
         .eq('email', data.email)
         .single();
 
       if (userError || !userData) {
+        console.error('User error:', userError);
         throw new Error('Credenciales inválidas');
       }
 
@@ -41,11 +46,30 @@ export default function LoginPage() {
         throw new Error('Credenciales inválidas');
       }
 
-      setMessage({ type: 'success', text: 'Inicio de sesión exitoso' });
+      const session = {
+        user: {
+          id: userData.id,
+          email: userData.email,
+          user_metadata: {
+            first_name: userData.first_name,
+            last_name: userData.last_name,
+            company_name: userData.company_name
+          }
+        },
+        expires_at: Date.now() + (24 * 60 * 60 * 1000)
+      };
+
+      localStorage.setItem('userSession', JSON.stringify(session));
       localStorage.setItem('userEmail', userData.email);
-      router.push('/dashboard');
+
+      setMessage({ type: 'success', text: 'Inicio de sesión exitoso' });
+
+      window.location.href = '/dashboard';
     } catch (error: any) {
+      console.error('Login error:', error);
       setMessage({ type: 'error', text: error.message });
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -105,9 +129,10 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            className="w-full py-3 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all"
+            className="w-full py-3 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all disabled:opacity-50"
+            disabled={isLoading}
           >
-            Iniciar Sesión
+            {isLoading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
           </button>
 
           <p className="text-center text-gray-400">

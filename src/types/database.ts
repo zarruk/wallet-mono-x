@@ -11,10 +11,10 @@ export interface Client {
 }
 
 export interface User {
-  id: string;
-  created_at: string;
+  id: number;
+  name: string;
   email: string;
-  password_hash: string;
+  // Agregar o actualizar tipos según la base de datos
 }
 
 export interface Transaction {

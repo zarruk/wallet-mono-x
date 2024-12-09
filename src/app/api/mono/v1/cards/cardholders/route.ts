@@ -2,10 +2,18 @@ import { NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
 
+interface CardholderRequest {
+  userData: {
+    // ... otros campos
+  };
+  birthDate: string;
+  nickname: string;
+}
+
 export async function POST(request: Request) {
   try {
     const MONO_API_TOKEN = process.env.MONO_API_TOKEN;
-    const { userData, birthDate } = await request.json();
+    const { userData, birthDate, nickname } = await request.json();
     const idempotencyKey = uuidv4();
     
     console.log('\n=== CREATE CARDHOLDER API CALL ===');
@@ -99,7 +107,7 @@ export async function POST(request: Request) {
       account_id: userData.mono_ledger_account_id,
       cardholder_id: cardholderData.id,
       configuration_group_id: "ccg_02yS5nPWCOcjZ0k6z5rThF",
-      nickname: "Primera tarjeta"
+      nickname: nickname
     };
 
     console.log('\n=== CREATE CARD API CALL ===');

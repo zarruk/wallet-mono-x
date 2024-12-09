@@ -5,6 +5,14 @@ import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Image from 'next/image';
 import { motion, useAnimation, PanInfo } from 'framer-motion';
+import dynamic from 'next/dynamic';
+import TransferSection from '@/components/dashboard/TransferSection';
+import { Bank } from '@/types/transfers';
+
+// Cargar componentes pesados de forma dinámica
+const CardsSection = dynamic(() => import('@/components/dashboard/CardsSection'), {
+  loading: () => <p>Cargando tarjetas...</p>
+});
 
 interface ClientData {
   id: string;
@@ -70,24 +78,30 @@ interface DatabaseCard {
   configuration_group_id: string;
 }
 
-export default function DashboardPage() {
+const Dashboard = () => {
   const router = useRouter();
   const [clientData, setClientData] = useState<ClientData | null>(null);
   const [balance, setBalance] = useState<number | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [uiState, setUiState] = useState({
+    loading: true,
+    transactionsLoading: true,
+    cardsLoading: true,
+    error: null,
+    showBirthDateModal: false,
+    showNicknameModal: false,
+    showTransferModal: false,
+    isSubmitting: false,
+  });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
-  const [transactionsLoading, setTransactionsLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [cards, setCards] = useState<MonoCard[]>([]);
-  const [cardsLoading, setCardsLoading] = useState(true);
-  const [showBirthDateModal, setShowBirthDateModal] = useState(false);
   const [birthDate, setBirthDate] = useState('');
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const controls = useAnimation();
   const [dragStartX, setDragStartX] = useState(0);
+  const [cardNickname, setCardNickname] = useState('');
+  const [banks, setBanks] = useState<Bank[]>([]);
 
   const fetchUserCards = async () => {
     try {
@@ -120,7 +134,7 @@ export default function DashboardPage() {
       console.error('Error fetching cards:', error);
       setCards([]);
     } finally {
-      setCardsLoading(false);
+      setUiState(prev => ({ ...prev, cardsLoading: false }));
     }
   };
 
@@ -143,9 +157,14 @@ export default function DashboardPage() {
   };
 
   // Modificar handleCreateCardholder para guardar la tarjeta
-  const handleCreateCardholder = async () => {
+  const handleCreateCard = async () => {
+    if (!cardNickname.trim()) {
+      alert('Por favor ingresa un nombre para tu tarjeta');
+      return;
+    }
+
     try {
-      setIsSubmitting(true);
+      setUiState(prev => ({ ...prev, isSubmitting: true }));
       
       // Si ya existe birth_date en clientData, usarlo
       const birthDateToUse = clientData?.birth_date || birthDate;
@@ -157,7 +176,8 @@ export default function DashboardPage() {
         },
         body: JSON.stringify({
           userData: clientData,
-          birthDate: birthDateToUse
+          birthDate: birthDateToUse,
+          nickname: cardNickname
         })
       });
 
@@ -170,12 +190,17 @@ export default function DashboardPage() {
       // Guardar en Supabase y actualizar el estado
       await saveCardToDatabase(data.cardData);
       setCards(prevCards => [...prevCards, data.cardData]);
-      setShowBirthDateModal(false);
+      setUiState(prev => ({ 
+        ...prev, 
+        showBirthDateModal: false,
+        showNicknameModal: false 
+      }));
+      setCardNickname('');
     } catch (error) {
       console.error('Error:', error);
       alert('Error al crear la tarjeta. Por favor intenta nuevamente.');
     } finally {
-      setIsSubmitting(false);
+      setUiState(prev => ({ ...prev, isSubmitting: false }));
     }
   };
 
@@ -211,9 +236,8 @@ export default function DashboardPage() {
   // Primer useEffect para obtener datos del cliente
   useEffect(() => {
     const checkAuth = async () => {
-      const userEmail = localStorage.getItem('userEmail');
-      
-      if (!userEmail) {
+      const session = localStorage.getItem('userSession');
+      if (!session) {
         router.push('/login');
         return;
       }
@@ -233,7 +257,7 @@ export default function DashboardPage() {
             company_name,
             company_logo_url
           `)
-          .eq('email', userEmail)
+          .eq('email', localStorage.getItem('userEmail'))
           .single();
 
         if (error) throw error;
@@ -297,7 +321,7 @@ export default function DashboardPage() {
             console.error('Error fetching transactions:', error);
             setTransactions([]);
           } finally {
-            setTransactionsLoading(false);
+            setUiState(prev => ({ ...prev, transactionsLoading: false }));
           }
         };
 
@@ -305,24 +329,108 @@ export default function DashboardPage() {
           fetchTransactions();
         }
       } catch (error: any) {
-        console.error('Error fetching data:', error);
-        setError(error.message);
+        console.error('Error:', error);
+        router.push('/login');
       } finally {
-        setLoading(false);
+        setUiState(prev => ({ ...prev, loading: false }));
       }
     };
 
     checkAuth();
-  }, [router]);
+  }, [router, currentPage]);
 
   // Nuevo useEffect para obtener tarjetas cuando clientData esté disponible
   useEffect(() => {
     if (clientData?.id) {
       fetchUserCards();
     }
-  }, [clientData]);
+  }, [clientData, fetchUserCards]);
 
-  if (loading) {
+  const handleTransfer = async (transferData: any) => {
+    try {
+      const response = await fetch('/api/mono/v1/transfers', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...transferData,
+          userId: clientData?.id,
+          accountId: clientData?.mono_ledger_account_id
+        })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al procesar la transferencia');
+      }
+
+      // Actualizar el balance
+      const timestamp = new Date().getTime();
+      const balanceResponse = await fetch(
+        `/api/mono/v1/ledger/accounts/${clientData?.mono_ledger_account_id}/balances?_t=${timestamp}`,
+        {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        }
+      );
+
+      const balanceData = await balanceResponse.json();
+      if (balanceResponse.ok) {
+        setBalance(balanceData.available.amount / 100);
+      }
+
+      // Actualizar las transacciones
+      const transactionsResponse = await fetch(
+        `/api/mono/v1/ledger/accounts/${clientData?.mono_ledger_account_id}/transactions?page=1&_t=${timestamp}`,
+        {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        }
+      );
+
+      const transactionsData = await transactionsResponse.json();
+      if (transactionsResponse.ok) {
+        setTransactions(transactionsData.transactions || []);
+        setTotalPages(transactionsData.pagination?.total_pages || 1);
+        setCurrentPage(1); // Volver a la primera página
+      }
+      
+      return data;
+    } catch (error: any) {
+      throw new Error(error.message || 'Error al procesar la transferencia');
+    }
+  };
+
+  useEffect(() => {
+    const fetchBanks = async () => {
+      try {
+        const response = await fetch('/api/mono/v1/banks');
+        const data = await response.json();
+        
+        if (!response.ok) throw new Error(data.error);
+        
+        // Convertir nombres a minúsculas y ordenar alfabéticamente
+        const formattedBanks = data.banks.map((bank: Bank) => ({
+          ...bank,
+          name: bank.name.toLowerCase()
+        })).sort((a: Bank, b: Bank) => a.name.localeCompare(b.name));
+        
+        setBanks(formattedBanks);
+      } catch (error) {
+        console.error('Error fetching banks:', error);
+      }
+    };
+
+    fetchBanks();
+  }, []);
+
+  if (uiState.loading) {
     return (
       <div className="min-h-screen bg-mono-dark flex items-center justify-center">
         <div className="text-mono-purple">Cargando...</div>
@@ -330,10 +438,10 @@ export default function DashboardPage() {
     );
   }
 
-  if (error) {
+  if (uiState.error) {
     return (
       <div className="min-h-screen bg-mono-dark flex items-center justify-center">
-        <div className="text-red-400">Error: {error}</div>
+        <div className="text-red-400">Error: {uiState.error}</div>
       </div>
     );
   }
@@ -346,9 +454,11 @@ export default function DashboardPage() {
           <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
             {clientData?.company_logo_url ? (
               <div className="w-16 h-16 rounded-full overflow-hidden bg-mono-gray">
-                <img
+                <Image
                   src={clientData.company_logo_url}
                   alt="Logo de la empresa"
+                  width={64}
+                  height={64}
                   className="w-full h-full object-cover"
                 />
               </div>
@@ -378,7 +488,16 @@ export default function DashboardPage() {
 
         {/* Mostrar el saldo */}
         <div className="p-4 sm:p-6 bg-mono-gray rounded-2xl">
-          <h2 className="text-lg sm:text-xl font-semibold text-white mb-2">Saldo Disponible</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg sm:text-xl font-semibold text-white">Saldo Disponible</h2>
+            <button
+              onClick={() => setUiState(prev => ({ ...prev, showTransferModal: true }))}
+              className="px-4 py-2 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all text-sm flex items-center gap-2"
+            >
+              <span>↗</span>
+              <span>Transferir</span>
+            </button>
+          </div>
           <p className="text-2xl sm:text-3xl font-bold text-mono-purple">
             ${balance?.toLocaleString('es-CO')}
           </p>
@@ -391,7 +510,7 @@ export default function DashboardPage() {
             <div className="bg-mono-gray rounded-2xl p-4 sm:p-6">
               <h2 className="text-xl font-semibold text-white mb-4">Últimos Movimientos</h2>
               <div className="space-y-3 sm:space-y-4">
-                {transactionsLoading ? (
+                {uiState.transactionsLoading ? (
                   <div className="text-center text-gray-400">Cargando movimientos...</div>
                 ) : !transactions ? (
                   <div className="text-center text-gray-400">Error al cargar movimientos</div>
@@ -476,10 +595,10 @@ export default function DashboardPage() {
                 <h2 className="text-lg sm:text-xl font-semibold text-white">Tarjetas</h2>
                 <button
                   onClick={() => {
-                    if (clientData?.birth_date) {
-                      handleCreateCardholder();
+                    if (!clientData?.birth_date) {
+                      setUiState(prev => ({ ...prev, showBirthDateModal: true }));
                     } else {
-                      setShowBirthDateModal(true);
+                      setUiState(prev => ({ ...prev, showNicknameModal: true }));
                     }
                   }}
                   className="w-full sm:w-auto px-4 py-2 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all text-sm"
@@ -529,7 +648,7 @@ export default function DashboardPage() {
           </div>
         </div>
       </div>
-      {showBirthDateModal && (
+      {uiState.showBirthDateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
           <div className="bg-mono-gray p-4 sm:p-6 rounded-2xl w-full max-w-[90%] sm:max-w-md">
             <h3 className="text-xl font-semibold text-white mb-4">
@@ -546,23 +665,95 @@ export default function DashboardPage() {
             />
             <div className="flex justify-end gap-4">
               <button
-                onClick={() => setShowBirthDateModal(false)}
+                onClick={() => setUiState(prev => ({ ...prev, showBirthDateModal: false }))}
                 className="px-4 py-2 text-gray-400 hover:text-white"
-                disabled={isSubmitting}
+                disabled={uiState.isSubmitting}
               >
                 Cancelar
               </button>
               <button
-                onClick={handleCreateCardholder}
-                disabled={!birthDate || isSubmitting}
+                onClick={() => {
+                  if (!birthDate) {
+                    alert('Por favor ingresa tu fecha de nacimiento');
+                    return;
+                  }
+                  setUiState(prev => ({ 
+                    ...prev, 
+                    showBirthDateModal: false,
+                    showNicknameModal: true 
+                  }));
+                }}
+                disabled={!birthDate || uiState.isSubmitting}
                 className="px-6 py-2 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all disabled:opacity-50"
               >
-                {isSubmitting ? 'Creando...' : 'Continuar'}
+                Continuar
               </button>
             </div>
           </div>
         </div>
       )}
+      {uiState.showNicknameModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
+          <div className="bg-mono-gray p-4 sm:p-6 rounded-2xl w-full max-w-[90%] sm:max-w-md">
+            <h3 className="text-xl font-semibold text-white mb-4">
+              Nombre de la Tarjeta
+            </h3>
+            <p className="text-gray-400 mb-4">
+              Asigna un nombre a tu nueva tarjeta para identificarla fácilmente.
+            </p>
+            <input
+              type="text"
+              value={cardNickname}
+              onChange={(e) => setCardNickname(e.target.value)}
+              placeholder="Ej: Mi Tarjeta Personal"
+              className="w-full px-4 py-3 bg-mono-dark border-0 rounded-xl text-white mb-4"
+            />
+            <div className="flex justify-end gap-4">
+              <button
+                onClick={() => {
+                  setUiState(prev => ({ ...prev, showNicknameModal: false }));
+                  setCardNickname('');
+                }}
+                className="px-4 py-2 text-gray-400 hover:text-white"
+                disabled={uiState.isSubmitting}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCreateCard}
+                disabled={!cardNickname.trim() || uiState.isSubmitting}
+                className="px-6 py-2 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all disabled:opacity-50"
+              >
+                {uiState.isSubmitting ? 'Creando...' : 'Crear'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {uiState.showTransferModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
+          <div className="bg-mono-gray p-4 sm:p-6 rounded-2xl w-full max-w-[90%] sm:max-w-2xl my-8">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-white">Nueva Transferencia</h3>
+              <button
+                onClick={() => setUiState(prev => ({ ...prev, showTransferModal: false }))}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+            <TransferSection 
+              banks={banks} 
+              onTransfer={async (data) => {
+                await handleTransfer(data);
+                setUiState(prev => ({ ...prev, showTransferModal: false }));
+              }}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
-} 
+};
+
+export default Dashboard; 

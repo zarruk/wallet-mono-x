@@ -1,6 +1,8 @@
 {
   "extends": [
-    "next",
     "next/core-web-vitals"
-  ]
+  ],
+  "rules": {
+    // Revisar reglas personalizadas y eliminar las innecesarias
+  }
 }

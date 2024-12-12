@@ -4,7 +4,7 @@ import { supabase } from '@/lib/supabase';
 
 export async function POST(request: Request) {
   try {
-    const MONO_API_TOKEN = process.env.MONO_API_TOKEN;
+    const MONO_API_TOKEN = process.env.MONO_API_TOKEN_ACCOUNTS;
     const data = await request.json();
     const idempotencyKey = uuidv4();
 

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
   try {
-    const MONO_API_TOKEN = process.env.MONO_API_TOKEN;
+    const MONO_API_TOKEN = process.env.MONO_API_TOKEN_CARDS;
     const timestamp = new Date().toISOString();
     const { searchParams } = new URL(request.url);
     const accountId = searchParams.get('account_id');

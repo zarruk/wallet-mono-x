@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Image from 'next/image';
@@ -103,40 +103,35 @@ const Dashboard = () => {
   const [cardNickname, setCardNickname] = useState('');
   const [banks, setBanks] = useState<Bank[]>([]);
 
-  const fetchUserCards = async () => {
+  const fetchUserCards = useCallback(async () => {
+    if (!clientData?.id) return;
+    
     try {
-      console.log('Fetching user cards from Supabase...');
       const { data: dbCards, error } = await supabase
         .from('wallet_mono_ix_cards')
         .select('*')
-        .eq('user_id', clientData!.id);
+        .eq('user_id', clientData.id);
 
       if (error) throw error;
 
-      console.log('Supabase cards:', dbCards);
-
       if (dbCards && dbCards.length > 0) {
-        console.log('Found cards in Supabase, fetching from Mono...');
-        const monoCards = await Promise.all(
-          dbCards.map(async (card) => {
-            const response = await fetch(`/api/mono/v1/cards/${card.card_id}`);
-            const cardData = await response.json();
-            return cardData;
-          })
-        );
-        console.log('Mono cards:', monoCards);
-        setCards(monoCards);
+        setCards(dbCards.map(card => ({
+          id: card.card_id,
+          state: card.state,
+          nickname: card.nickname,
+          account_id: card.account_id,
+          last_four: card.last_four,
+          configuration_group_id: card.configuration_group_id,
+          cardholder_id: card.cardholder_id
+        })));
       } else {
-        console.log('No cards found in Supabase');
         setCards([]);
       }
     } catch (error) {
       console.error('Error fetching cards:', error);
       setCards([]);
-    } finally {
-      setUiState(prev => ({ ...prev, cardsLoading: false }));
     }
-  };
+  }, [clientData?.id]);
 
   // Función para guardar la tarjeta en Supabase después de crearla
   const saveCardToDatabase = async (cardData: MonoCard) => {
@@ -233,7 +228,65 @@ const Dashboard = () => {
     });
   };
 
-  // Primer useEffect para obtener datos del cliente
+  // 1. Separar la lógica de fetchBalance en una función independiente
+  const fetchBalance = async (accountId: string) => {
+    console.log('Fetching fresh balance...');
+    const timestamp = new Date().getTime();
+    const balanceResponse = await fetch(
+      `/api/mono/v1/balance?account_id=${accountId}&_t=${timestamp}`,
+      {
+        headers: {
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      }
+    );
+
+    const balanceData = await balanceResponse.json();
+    if (!balanceResponse.ok) {
+      throw new Error(balanceData.error || 'Error al obtener el saldo');
+    }
+
+    return balanceData;
+  };
+
+  // Después de fetchBalance y antes de los useEffect
+  const fetchTransactions = useCallback(async () => {
+    if (!clientData?.mono_ledger_account_id) return;
+    
+    try {
+      setUiState(prev => ({ ...prev, transactionsLoading: true }));
+      console.log('Fetching transactions...');
+      
+      const timestamp = new Date().getTime();
+      const response = await fetch(
+        `/api/mono/v1/ledger/accounts/${clientData.mono_ledger_account_id}/transactions?page=${currentPage}&_t=${timestamp}&sort[field]=transaction_at&sort[type]=desc`,
+        {
+          headers: {
+            'Cache-Control': 'no-cache, no-store, must-revalidate',
+            'Pragma': 'no-cache'
+          }
+        }
+      );
+
+      const transactionsData: TransactionsResponse = await response.json();
+
+      if (!response.ok) {
+        throw new Error(transactionsData.message || 'Error al obtener las transacciones');
+      }
+
+      setTransactions(transactionsData.transactions || []);
+      setTotalPages(transactionsData.pagination?.total_pages || 1);
+    } catch (error) {
+      console.error('Error fetching transactions:', error);
+      setTransactions([]);
+    } finally {
+      setUiState(prev => ({ ...prev, transactionsLoading: false }));
+    }
+  }, [clientData?.mono_ledger_account_id, currentPage]);
+
+  // 2. Corregir las dependencias de los useEffect
+  // Primer useEffect para auth y datos iniciales
   useEffect(() => {
     const checkAuth = async () => {
       const session = localStorage.getItem('userSession');
@@ -268,7 +321,7 @@ const Dashboard = () => {
           console.log('Fetching fresh balance...');
           const timestamp = new Date().getTime();
           const balanceResponse = await fetch(
-            `/api/mono/v1/ledger/accounts/${data.mono_ledger_account_id}/balances?_t=${timestamp}`,
+            `/api/mono/v1/balance?account_id=${data.mono_ledger_account_id}&_t=${timestamp}`,
             {
               headers: {
                 'Cache-Control': 'no-cache, no-store, must-revalidate',
@@ -284,46 +337,13 @@ const Dashboard = () => {
             throw new Error(balanceData.error || 'Error al obtener el saldo');
           }
 
-          setBalance(balanceData.available.amount / 100);
-        }
-
-        const fetchTransactions = async () => {
-          try {
-            console.log('Fetching transactions...');
-            console.log('Account ID:', data.mono_ledger_account_id);
-            console.log('Current Page:', currentPage);
-            
-            const timestamp = new Date().getTime();
-            const response = await fetch(
-              `/api/mono/v1/ledger/accounts/${data.mono_ledger_account_id}/transactions?page=${currentPage}&_t=${timestamp}`,
-              {
-                headers: {
-                  'Cache-Control': 'no-cache, no-store, must-revalidate',
-                  'Pragma': 'no-cache'
-                }
-              }
-            );
-
-            console.log('Response status:', response.status);
-            const transactionsData: TransactionsResponse = await response.json();
-            console.log('Transactions data:', JSON.stringify(transactionsData, null, 2));
-
-            if (!response.ok) {
-              const errorMessage = response.status === 422 
-                ? 'Error en el formato de la solicitud'
-                : 'Error al obtener las transacciones';
-              throw new Error(errorMessage);
-            }
-
-            setTransactions(transactionsData.transactions || []);
-            setTotalPages(transactionsData.pagination?.total_pages || 1);
-          } catch (error) {
-            console.error('Error fetching transactions:', error);
-            setTransactions([]);
-          } finally {
-            setUiState(prev => ({ ...prev, transactionsLoading: false }));
+          if (balanceData.error) {
+            console.error('Balance error:', balanceData.error);
+            setBalance(0);
+          } else {
+            setBalance(Number(balanceData.available) / 100);
           }
-        };
+        }
 
         if (data.mono_ledger_account_id) {
           fetchTransactions();
@@ -337,14 +357,21 @@ const Dashboard = () => {
     };
 
     checkAuth();
-  }, [router, currentPage]);
+  }, [router]); // Solo depende del router
 
-  // Nuevo useEffect para obtener tarjetas cuando clientData esté disponible
+  // Segundo useEffect para tarjetas
   useEffect(() => {
     if (clientData?.id) {
       fetchUserCards();
     }
-  }, [clientData, fetchUserCards]);
+  }, [clientData?.id, fetchUserCards]);
+
+  // Tercer useEffect para transacciones
+  useEffect(() => {
+    if (clientData?.mono_ledger_account_id) {
+      fetchTransactions();
+    }
+  }, [clientData?.mono_ledger_account_id, fetchTransactions]);
 
   const handleTransfer = async (transferData: any) => {
     try {
@@ -499,7 +526,7 @@ const Dashboard = () => {
             </button>
           </div>
           <p className="text-2xl sm:text-3xl font-bold text-mono-purple">
-            ${balance?.toLocaleString('es-CO')}
+            ${(balance || 0).toLocaleString('es-CO')}
           </p>
         </div>
 

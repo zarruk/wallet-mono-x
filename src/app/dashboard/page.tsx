@@ -61,6 +61,7 @@ interface MonoCard {
   last_four: string;
   configuration_group_id: string;
   cardholder_id: string;
+  card_art_url?: string;  // Agregamos esta propiedad
 }
 
 interface DatabaseCard {
@@ -653,13 +654,12 @@ const Dashboard = () => {
                             <div className="flex justify-between items-start mb-8">
                               <div className="w-10 h-6 bg-yellow-400/90 rounded"></div>
                               <Image 
-                                src={card.card_art_url} 
+                                src={card.card_art_url || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS3uAjU_SrHLug3x9S3K2CmHs1HxtWGlTQYaA&s"} 
                                 alt="Card" 
                                 width={300} 
                                 height={200} 
                                 className="w-12 h-8 object-contain"
-                              />
-                            </div>
+                                />                            </div>
                             <div className="space-y-2">
                               <p className="text-white/60 text-sm">{card.nickname}</p>
                               <p className="text-white text-lg font-medium tracking-wider">

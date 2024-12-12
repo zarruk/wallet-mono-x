@@ -9,6 +9,7 @@ interface MonoCard {
   last_four: string;
   configuration_group_id: string;
   cardholder_id: string;
+  card_art_url?: string;
 }
 
 interface CardsSectionProps {
@@ -60,7 +61,7 @@ const CardsSection = ({ cards, onCreateCard, isLoading, clientData }: CardsSecti
                     <div className="flex justify-between items-start mb-8">
                       <div className="w-10 h-6 bg-yellow-400/90 rounded"></div>
                       <Image 
-                        src={card.card_art_url} 
+                        src={card.card_art_url || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS3uAjU_SrHLug3x9S3K2CmHs1HxtWGlTQYaA&s"} 
                         alt="Card" 
                         width={300} 
                         height={200} 

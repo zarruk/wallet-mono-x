@@ -47,11 +47,8 @@ interface Transaction {
 
 interface TransactionsResponse {
   transactions: Transaction[];
-  pagination: {
-    page_size: number;
-    page_number: number;
+  pagination?: {
     total_pages: number;
-    total_items: number;
   };
   error?: string;
 }
@@ -272,7 +269,10 @@ const Dashboard = () => {
       const transactionsData: TransactionsResponse = await response.json();
 
       if (!response.ok) {
-        throw new Error(transactionsData.message || 'Error al obtener las transacciones');
+        const errorMessage = response.status === 422 
+          ? 'Error en el formato de la solicitud'
+          : transactionsData.error || 'Error al obtener las transacciones';
+        throw new Error(errorMessage);
       }
 
       setTransactions(transactionsData.transactions || []);
@@ -652,9 +652,11 @@ const Dashboard = () => {
                           <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-4 sm:p-6 aspect-[1.6/1] relative overflow-hidden transform transition-all duration-300 hover:scale-105">
                             <div className="flex justify-between items-start mb-8">
                               <div className="w-10 h-6 bg-yellow-400/90 rounded"></div>
-                              <img 
-                                src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS3uAjU_SrHLug3x9S3K2CmHs1HxtWGlTQYaA&s"
-                                alt="Visa Logo"
+                              <Image 
+                                src={card.card_art_url} 
+                                alt="Card" 
+                                width={300} 
+                                height={200} 
                                 className="w-12 h-8 object-contain"
                               />
                             </div>

@@ -5,11 +5,11 @@ export const POST = async (request: Request) => {
     const body = await request.json();
     console.log('Request Body:', body);
 
-    // Obtener el token de autorización desde variables de entorno
-    const MONO_API_TOKEN = process.env.MONO_API_TOKEN || '';
+    // Cambiar a MONO_API_TOKEN_CARDS
+    const MONO_API_TOKEN_CARDS = process.env.MONO_API_TOKEN_CARDS || '';
 
     // Verificar que el token no esté vacío
-    if (!MONO_API_TOKEN) {
+    if (!MONO_API_TOKEN_CARDS) {
       console.error('El token de Mono no está configurado.');
       return NextResponse.json(
         { error: 'Error en el servidor. Token no configurado.' },
@@ -21,7 +21,7 @@ export const POST = async (request: Request) => {
     const monoHeaders = {
       'Accept': 'application/json',
       'Content-Type': 'application/json',
-      'Authorization': `Bearer ${MONO_API_TOKEN}`,
+      'Authorization': `Bearer ${MONO_API_TOKEN_CARDS}`,
       'x-idempotency-key': request.headers.get('x-idempotency-key') || '',
     };
 

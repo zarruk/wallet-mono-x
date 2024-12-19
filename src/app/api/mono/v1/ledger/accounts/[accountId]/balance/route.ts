@@ -5,44 +5,41 @@ export async function POST(
   { params }: { params: { accountId: string } }
 ) {
   try {
-    const body = await request.json();
-    console.log('\n=== BALANCE ENDPOINT CALLED ===');
+    console.log('=== BALANCE ENDPOINT CALLED ===');
     console.log('Account ID:', params.accountId);
+    
+    const body = await request.json();
     console.log('Request Body:', JSON.stringify(body, null, 2));
 
-    const MONO_API_TOKEN = process.env.MONO_API_TOKEN;
-    if (!MONO_API_TOKEN) {
-      console.error('MONO_API_TOKEN not found in environment variables');
-      throw new Error('Configuration error');
-    }
+    const MONO_API_TOKEN_CARDS = process.env.MONO_API_TOKEN_CARDS;
 
     console.log('Making request to Mono API...');
-    const monoResponse = await fetch(
+    const response = await fetch(
       `https://api.sandbox.cuentamono.com/v1/ledger/accounts/${params.accountId}/balance`,
       {
         method: 'POST',
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${MONO_API_TOKEN}`,
-          'x-idempotency-key': request.headers.get('x-idempotency-key') || '',
+          'Authorization': `Bearer ${MONO_API_TOKEN_CARDS}`,
+          'x-idempotency-key': crypto.randomUUID()
         },
-        body: JSON.stringify(body),
+        body: JSON.stringify(body)
       }
     );
 
-    const data = await monoResponse.json();
+    const data = await response.json();
     console.log('Mono API Response:', {
-      status: monoResponse.status,
+      status: response.status,
       data: JSON.stringify(data, null, 2)
     });
 
-    if (!monoResponse.ok) {
-      console.error('Error response from Mono:', data);
-      throw new Error(data.message || 'Error from Mono API');
+    if (!response.ok) {
+      console.log('Error response from Mono:', data);
+      throw new Error(data.message || 'Error processing balance operation');
     }
 
-    return NextResponse.json(data, { status: monoResponse.status });
+    return NextResponse.json(data);
   } catch (error: any) {
     console.error('Balance endpoint error:', error);
     console.error('Stack:', error.stack);

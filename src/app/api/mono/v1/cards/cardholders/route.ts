@@ -10,9 +10,10 @@ interface CardholderRequest {
   nickname: string;
 }
 
+const MONO_API_TOKEN_CARDS = process.env.MONO_API_TOKEN_CARDS;
+
 export async function POST(request: Request) {
   try {
-    const MONO_API_TOKEN = process.env.MONO_API_TOKEN;
     const { userData, birthDate, nickname } = await request.json();
     const idempotencyKey = uuidv4();
     
@@ -55,7 +56,7 @@ export async function POST(request: Request) {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${MONO_API_TOKEN}`,
+        'Authorization': `Bearer ${MONO_API_TOKEN_CARDS}`,
         'x-idempotency-key': idempotencyKey
       },
       body: JSON.stringify(cardholderPayload)
@@ -118,7 +119,7 @@ export async function POST(request: Request) {
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${MONO_API_TOKEN}`,
+        'Authorization': `Bearer ${MONO_API_TOKEN_CARDS}`,
         'x-idempotency-key': uuidv4()
       },
       body: JSON.stringify(cardPayload)

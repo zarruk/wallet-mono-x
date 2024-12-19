@@ -1,0 +1,5 @@
+{
+  "/dashboard/page": "app/dashboard/page.js",
+  "/favicon.ico/route": "app/favicon.ico/route.js",
+  "/api/mono/v1/banks/route": "app/api/mono/v1/banks/route.js"
+}

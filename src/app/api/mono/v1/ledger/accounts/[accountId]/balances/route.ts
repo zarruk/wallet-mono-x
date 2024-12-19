@@ -5,7 +5,7 @@ export async function GET(
   { params }: { params: { accountId: string } }
 ) {
   try {
-    const MONO_API_TOKEN = process.env.MONO_API_TOKEN;
+    const MONO_API_TOKEN_CARDS = process.env.MONO_API_TOKEN_CARDS;
     const timestamp = new Date().toISOString();
     
     console.log(`\n=== GET BALANCE API CALL (${timestamp}) ===`);
@@ -16,7 +16,7 @@ export async function GET(
     
     console.log('Headers:', {
       'Accept': 'application/json',
-      'Authorization': `Bearer ${MONO_API_TOKEN?.substring(0, 10)}...`,
+      'Authorization': `Bearer ${MONO_API_TOKEN_CARDS?.substring(0, 10)}...`,
       'Cache-Control': 'no-cache'
     });
 
@@ -24,7 +24,7 @@ export async function GET(
       method: 'GET',
       headers: {
         'Accept': 'application/json',
-        'Authorization': `Bearer ${MONO_API_TOKEN}`,
+        'Authorization': `Bearer ${MONO_API_TOKEN_CARDS}`,
         'Cache-Control': 'no-cache, no-store, must-revalidate',
         'Pragma': 'no-cache'
       },

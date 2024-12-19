@@ -2,9 +2,11 @@ import { NextResponse } from 'next/server';
 import { v4 as uuidv4 } from 'uuid';
 import { supabase } from '@/lib/supabase';
 
+const MONO_API_TOKEN = process.env.MONO_API_TOKEN_ACCOUNTS;
+const MONO_API_TOKEN_CARDS = process.env.MONO_API_TOKEN_CARDS;
+
 export async function POST(request: Request) {
   try {
-    const MONO_API_TOKEN = process.env.MONO_API_TOKEN_ACCOUNTS;
     const data = await request.json();
     const idempotencyKey = uuidv4();
 
@@ -69,7 +71,7 @@ export async function POST(request: Request) {
           entity_id: transferRecord.id
         }
       ],
-      account_id: data.accountId
+      account_id: "acc_02yS6Xfey3sWWvvNAJtie6"
     };
 
     console.log('\n=== MONO TRANSFER REQUEST ===');
@@ -123,19 +125,22 @@ export async function POST(request: Request) {
     };
 
     console.log('\n=== MONO WITHDRAWAL REQUEST ===');
-    console.log('URL: https://api.sandbox.cuentamono.com/v1/ledger/accounts/${data.accountId}/balance');
+    console.log(`URL: https://api.sandbox.cuentamono.com/v1/ledger/accounts/${data.accountId}/balance`);
     console.log('Payload:', JSON.stringify(withdrawalPayload, null, 2));
 
-    const withdrawalResponse = await fetch(`https://api.sandbox.cuentamono.com/v1/ledger/accounts/${data.accountId}/balance`, {
-      method: 'POST',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${MONO_API_TOKEN}`,
-        'x-idempotency-key': uuidv4()
-      },
-      body: JSON.stringify(withdrawalPayload)
-    });
+    const withdrawalResponse = await fetch(
+      `https://api.sandbox.cuentamono.com/v1/ledger/accounts/${data.accountId}/balance`, 
+      {
+        method: 'POST',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${MONO_API_TOKEN_CARDS}`,
+          'x-idempotency-key': uuidv4()
+        },
+        body: JSON.stringify(withdrawalPayload)
+      }
+    );
 
     const withdrawalData = await withdrawalResponse.json();
     console.log('\n=== MONO WITHDRAWAL RESPONSE ===');

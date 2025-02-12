@@ -13,7 +13,6 @@ export default function TransferSection({ banks, onTransfer }: TransferSectionPr
   const [formData, setFormData] = useState({
     amount: '',
     bankCode: '',
-    accountType: 'savings_account',
     accountNumber: '',
     documentType: 'CC',
     documentNumber: '',
@@ -101,7 +100,6 @@ export default function TransferSection({ banks, onTransfer }: TransferSectionPr
       setFormData({
         amount: '',
         bankCode: '',
-        accountType: 'savings_account',
         accountNumber: '',
         documentType: 'CC',
         documentNumber: '',
@@ -119,49 +117,49 @@ export default function TransferSection({ banks, onTransfer }: TransferSectionPr
 
   const renderConfirmationStep = () => (
     <div className="space-y-4">
-      <h3 className="text-lg font-semibold text-white mb-4">Confirma los datos de la transferencia</h3>
+      <h3 className="text-lg font-semibold text-mpf-dark mb-4">Confirma los datos de la transferencia</h3>
       
-      <div className="space-y-3 bg-mono-dark/50 p-4 rounded-xl">
+      <div className="space-y-3 bg-mpf-warmGray p-6 rounded-xl border border-gray-200/50">
         <div className="flex justify-between">
-          <span className="text-gray-400">Monto:</span>
-          <span className="text-white font-medium">{formatAmount(formData.amount)}</span>
+          <span className="text-gray-500">Monto:</span>
+          <span className="text-mpf-dark font-semibold">{formatAmount(formData.amount)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-400">Banco:</span>
-          <span className="text-white">{getSelectedBank()?.name.toLowerCase()}</span>
+          <span className="text-gray-500">Banco:</span>
+          <span className="text-mpf-dark">{getSelectedBank()?.name.toLowerCase()}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-400">Tipo de cuenta:</span>
-          <span className="text-white">
+          <span className="text-gray-500">Tipo de cuenta:</span>
+          <span className="text-mpf-dark">
             {ACCOUNT_TYPES.find(type => type.value === formData.accountType)?.label}
           </span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-400">Número de cuenta:</span>
-          <span className="text-white">{formData.accountNumber}</span>
+          <span className="text-gray-500">Número de cuenta:</span>
+          <span className="text-mpf-dark">{formData.accountNumber}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-400">Tipo de documento:</span>
-          <span className="text-white">
+          <span className="text-gray-500">Tipo de documento:</span>
+          <span className="text-mpf-dark">
             {DOCUMENT_TYPES.find(type => type.value === formData.documentType)?.label}
           </span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-400">Número de documento:</span>
-          <span className="text-white">{formData.documentNumber}</span>
+          <span className="text-gray-500">Número de documento:</span>
+          <span className="text-mpf-dark">{formData.documentNumber}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-400">Nombre del destinatario:</span>
-          <span className="text-white">{formData.recipientName}</span>
+          <span className="text-gray-500">Nombre del destinatario:</span>
+          <span className="text-mpf-dark">{formData.recipientName}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-gray-400">Teléfono:</span>
-          <span className="text-white">+57 {formData.phoneNumber}</span>
+          <span className="text-gray-500">Teléfono:</span>
+          <span className="text-mpf-dark">+57 {formData.phoneNumber}</span>
         </div>
         {formData.description && (
           <div className="flex justify-between">
-            <span className="text-gray-400">Descripción:</span>
-            <span className="text-white">{formData.description}</span>
+            <span className="text-gray-500">Descripción:</span>
+            <span className="text-mpf-dark">{formData.description}</span>
           </div>
         )}
       </div>
@@ -170,14 +168,15 @@ export default function TransferSection({ banks, onTransfer }: TransferSectionPr
         <button
           type="button"
           onClick={() => setStep(2)}
-          className="w-full px-6 py-3 bg-mono-dark text-white rounded-xl hover:bg-opacity-90 transition-all"
+          className="w-full px-6 py-3 bg-mpf-warmGray text-mpf-dark rounded-xl hover:bg-mpf-warmGray/80 transition-all font-medium"
           disabled={loading}
         >
           Atrás
         </button>
         <button
-          type="submit"
-          className="w-full px-6 py-3 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all"
+          type="button"
+          onClick={handleSubmit}
+          className="w-full px-6 py-3 bg-mpf-teal text-white rounded-xl hover:bg-opacity-90 transition-all font-medium"
           disabled={loading}
         >
           {loading ? 'Procesando...' : 'Confirmar transferencia'}
@@ -186,176 +185,182 @@ export default function TransferSection({ banks, onTransfer }: TransferSectionPr
     </div>
   );
 
+  const renderStep1 = () => (
+    <div className="space-y-6">
+      {/* Monto */}
+      <div>
+        <label className="block text-gray-500 mb-2 text-sm">
+          Monto (COP)
+        </label>
+        <div className="relative">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+          <input
+            type="number"
+            name="amount"
+            value={formData.amount}
+            onChange={handleInputChange}
+            placeholder="0"
+            className="w-full px-4 py-3 pl-8 bg-mpf-warmGray border border-gray-200/50 rounded-xl text-mpf-dark placeholder-gray-400 focus:ring-2 focus:ring-mpf-teal/20 focus:border-mpf-teal transition-all"
+          />
+        </div>
+      </div>
+
+      {/* Banco */}
+      <div>
+        <label className="block text-gray-500 mb-2 text-sm">
+          Banco
+        </label>
+        <select
+          name="bankCode"
+          value={formData.bankCode}
+          onChange={handleInputChange}
+          className="w-full px-4 py-3 bg-mpf-warmGray border border-gray-200/50 rounded-xl text-mpf-dark appearance-none focus:ring-2 focus:ring-mpf-teal/20 focus:border-mpf-teal transition-all"
+        >
+          <option value="">Selecciona un banco</option>
+          {banks.map((bank) => (
+            <option key={bank.code} value={bank.code}>
+              {bank.name}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Tipo de cuenta */}
+      <div>
+        <label className="block text-gray-500 mb-2 text-sm">
+          Tipo de cuenta
+        </label>
+        <select
+          name="accountType"
+          value={formData.accountType}
+          onChange={handleInputChange}
+          className="w-full px-4 py-3 bg-mpf-warmGray border border-gray-200/50 rounded-xl text-mpf-dark appearance-none focus:ring-2 focus:ring-mpf-teal/20 focus:border-mpf-teal transition-all"
+        >
+          <option value="">Selecciona el tipo de cuenta</option>
+          <option value="savings_account">Cuenta de ahorros</option>
+          <option value="checking_account">Cuenta corriente</option>
+        </select>
+      </div>
+
+      {/* Número de cuenta */}
+      <div>
+        <label className="block text-gray-500 mb-2 text-sm">
+          Número de cuenta
+        </label>
+        <input
+          type="text"
+          name="accountNumber"
+          value={formData.accountNumber}
+          onChange={handleInputChange}
+          placeholder="Ingresa el número de cuenta"
+          className="w-full px-4 py-3 bg-mpf-warmGray border border-gray-200/50 rounded-xl text-mpf-dark placeholder-gray-400 focus:ring-2 focus:ring-mpf-teal/20 focus:border-mpf-teal transition-all"
+        />
+      </div>
+
+      <button
+        onClick={handleSubmit}
+        disabled={loading}
+        className="w-full px-4 py-3 bg-mpf-teal text-white rounded-xl hover:bg-opacity-90 transition-all disabled:opacity-50 mt-4 font-medium"
+      >
+        {loading ? 'Procesando...' : 'Continuar'}
+      </button>
+    </div>
+  );
+
+  const renderStep2 = () => (
+    <div className="space-y-6">
+      {/* Tipo de documento */}
+      <div>
+        <label className="block text-gray-500 mb-2 text-sm">
+          Tipo de documento
+        </label>
+        <select
+          name="documentType"
+          value={formData.documentType}
+          onChange={handleInputChange}
+          className="w-full px-4 py-3 bg-mpf-warmGray border border-gray-200/50 rounded-xl text-mpf-dark appearance-none focus:ring-2 focus:ring-mpf-teal/20 focus:border-mpf-teal transition-all"
+        >
+          {DOCUMENT_TYPES.map(type => (
+            <option key={type.value} value={type.value}>
+              {type.label}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      {/* Número de documento */}
+      <div>
+        <label className="block text-gray-500 mb-2 text-sm">
+          Número de documento
+        </label>
+        <input
+          type="text"
+          name="documentNumber"
+          value={formData.documentNumber}
+          onChange={handleInputChange}
+          placeholder="Ingresa el número de documento"
+          className="w-full px-4 py-3 bg-mpf-warmGray border border-gray-200/50 rounded-xl text-mpf-dark placeholder-gray-400 focus:ring-2 focus:ring-mpf-teal/20 focus:border-mpf-teal transition-all"
+        />
+      </div>
+
+      {/* Nombre y teléfono con el mismo estilo */}
+      <div>
+        <label className="block text-gray-500 mb-2 text-sm">
+          Nombre del destinatario
+        </label>
+        <input
+          type="text"
+          name="recipientName"
+          value={formData.recipientName}
+          onChange={handleInputChange}
+          placeholder="Ingresa el nombre del destinatario"
+          className="w-full px-4 py-3 bg-mpf-warmGray border border-gray-200/50 rounded-xl text-mpf-dark placeholder-gray-400 focus:ring-2 focus:ring-mpf-teal/20 focus:border-mpf-teal transition-all"
+        />
+      </div>
+
+      <div>
+        <label className="block text-gray-500 mb-2 text-sm">
+          Teléfono
+        </label>
+        <input
+          type="text"
+          name="phoneNumber"
+          value={formData.phoneNumber}
+          onChange={handleInputChange}
+          placeholder="Ingresa el teléfono"
+          className="w-full px-4 py-3 bg-mpf-warmGray border border-gray-200/50 rounded-xl text-mpf-dark placeholder-gray-400 focus:ring-2 focus:ring-mpf-teal/20 focus:border-mpf-teal transition-all"
+        />
+      </div>
+
+      <div className="flex gap-4">
+        <button
+          onClick={() => setStep(1)}
+          className="w-full px-4 py-3 bg-mpf-warmGray text-mpf-dark rounded-xl hover:bg-mpf-warmGray/80 transition-all font-medium"
+        >
+          Atrás
+        </button>
+        <button
+          onClick={handleSubmit}
+          disabled={loading}
+          className="w-full px-4 py-3 bg-mpf-teal text-white rounded-xl hover:bg-opacity-90 transition-all disabled:opacity-50 font-medium"
+        >
+          {loading ? 'Procesando...' : 'Continuar'}
+        </button>
+      </div>
+    </div>
+  );
+
   return (
-    <>
+    <div>
       {error && (
-        <div className="mb-4 p-3 bg-red-500/20 text-red-400 rounded-xl">
+        <div className="mb-6 p-4 bg-red-100 border border-red-200 text-red-600 rounded-xl">
           {error}
         </div>
       )}
-
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {step === 1 ? (
-          <>
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">Monto (COP)</label>
-              <input
-                type="number"
-                name="amount"
-                value={formData.amount}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-mono-dark border-0 rounded-xl text-white"
-                placeholder="0"
-                min="0"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">Banco</label>
-              <select
-                name="bankCode"
-                value={formData.bankCode}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-mono-dark border-0 rounded-xl text-white"
-                required
-              >
-                <option value="">Selecciona un banco</option>
-                {banks.map(bank => (
-                  <option key={bank.code} value={bank.code}>
-                    {bank.name.toLowerCase()}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">Tipo de cuenta</label>
-              <select
-                name="accountType"
-                value={formData.accountType}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-mono-dark border-0 rounded-xl text-white"
-                required
-              >
-                {getSupportedAccountTypes().map(type => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">Número de cuenta</label>
-              <input
-                type="text"
-                name="accountNumber"
-                value={formData.accountNumber}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-mono-dark border-0 rounded-xl text-white"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full px-6 py-3 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all"
-              disabled={loading}
-            >
-              Continuar
-            </button>
-          </>
-        ) : step === 2 ? (
-          <>
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">Tipo de documento</label>
-              <select
-                name="documentType"
-                value={formData.documentType}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-mono-dark border-0 rounded-xl text-white"
-                required
-              >
-                {DOCUMENT_TYPES.map(type => (
-                  <option key={type.value} value={type.value}>
-                    {type.label}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">Número de documento</label>
-              <input
-                type="text"
-                name="documentNumber"
-                value={formData.documentNumber}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-mono-dark border-0 rounded-xl text-white"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">Nombre del destinatario</label>
-              <input
-                type="text"
-                name="recipientName"
-                value={formData.recipientName}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-mono-dark border-0 rounded-xl text-white"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">Teléfono</label>
-              <input
-                type="tel"
-                name="phoneNumber"
-                value={formData.phoneNumber}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-mono-dark border-0 rounded-xl text-white"
-                placeholder="3001234567"
-                pattern="\d{10}"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">Descripción (opcional)</label>
-              <input
-                type="text"
-                name="description"
-                value={formData.description}
-                onChange={handleInputChange}
-                className="w-full px-4 py-3 bg-mono-dark border-0 rounded-xl text-white"
-              />
-            </div>
-
-            <div className="flex gap-4">
-              <button
-                type="button"
-                onClick={() => setStep(1)}
-                className="w-full px-6 py-3 bg-mono-dark text-white rounded-xl hover:bg-opacity-90 transition-all"
-                disabled={loading}
-              >
-                Atrás
-              </button>
-              <button
-                type="submit"
-                className="w-full px-6 py-3 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all"
-                disabled={loading}
-              >
-                Continuar
-              </button>
-            </div>
-          </>
-        ) : (
-          renderConfirmationStep()
-        )}
-      </form>
-    </>
+      
+      {step === 1 && renderStep1()}
+      {step === 2 && renderStep2()}
+      {step === 3 && renderConfirmationStep()}
+    </div>
   );
 } 

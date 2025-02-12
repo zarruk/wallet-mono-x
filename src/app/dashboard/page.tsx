@@ -76,6 +76,18 @@ interface DatabaseCard {
   configuration_group_id: string;
 }
 
+interface UIState {
+  loading: boolean;
+  transactionsLoading: boolean;
+  cardsLoading: boolean;
+  error: string | null;
+  showBirthDateModal: boolean;
+  showNicknameModal: boolean;
+  showTransferModal: boolean;
+  showRechargeModal: boolean;
+  isSubmitting: boolean;
+}
+
 const Dashboard = () => {
   const router = useRouter();
   const [clientData, setClientData] = useState<ClientData | null>(null);
@@ -88,6 +100,7 @@ const Dashboard = () => {
     showBirthDateModal: false,
     showNicknameModal: false,
     showTransferModal: false,
+    showRechargeModal: false,
     isSubmitting: false,
   });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -100,6 +113,8 @@ const Dashboard = () => {
   const [dragStartX, setDragStartX] = useState(0);
   const [cardNickname, setCardNickname] = useState('');
   const [banks, setBanks] = useState<Bank[]>([]);
+  const [rechargeAmount, setRechargeAmount] = useState('');
+  const predefinedAmounts = [50000, 100000, 200000];
 
   const fetchUserCards = useCallback(async () => {
     if (!clientData?.id) return;
@@ -458,6 +473,68 @@ const Dashboard = () => {
     fetchBanks();
   }, []);
 
+  const handlePSERecharge = async () => {
+    try {
+      setUiState(prev => ({ ...prev, isSubmitting: true }));
+      
+      // 1. Simular que el usuario fue a PSE
+      await new Promise(resolve => setTimeout(resolve, 2000)); // Esperar 2 segundos
+
+      // 2. Hacer la recarga
+      const response = await fetch('/api/mono/v1/recharges', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: Number(rechargeAmount),
+          userId: clientData?.id,
+          accountId: clientData?.mono_ledger_account_id
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al procesar la recarga');
+      }
+
+      // 3. Cerrar el modal y actualizar el balance
+      setUiState(prev => ({ ...prev, showRechargeModal: false }));
+      setRechargeAmount('');
+      
+      // 4. Actualizar el balance
+      if (clientData?.mono_ledger_account_id) {
+        const balanceResponse = await fetch(
+          `/api/mono/v1/balance?account_id=${clientData.mono_ledger_account_id}&_t=${Date.now()}`,
+          {
+            headers: {
+              'Cache-Control': 'no-cache, no-store, must-revalidate',
+              'Pragma': 'no-cache'
+            }
+          }
+        );
+
+        const balanceData = await balanceResponse.json();
+        if (balanceResponse.ok) {
+          setBalance(Number(balanceData.available) / 100);
+        }
+      }
+
+      // 5. Actualizar las transacciones
+      fetchTransactions();
+
+      // 6. Mostrar mensaje de éxito
+      alert('¡Recarga exitosa!');
+
+    } catch (error) {
+      console.error('Error:', error);
+      alert('Error al procesar la recarga. Por favor intenta nuevamente.');
+    } finally {
+      setUiState(prev => ({ ...prev, isSubmitting: false }));
+    }
+  };
+
   if (uiState.loading) {
     return (
       <div className="min-h-screen bg-mono-dark flex items-center justify-center">
@@ -518,13 +595,22 @@ const Dashboard = () => {
         <div className="p-4 sm:p-6 bg-mono-gray rounded-2xl">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg sm:text-xl font-semibold text-white">Saldo Disponible</h2>
-            <button
-              onClick={() => setUiState(prev => ({ ...prev, showTransferModal: true }))}
-              className="px-4 py-2 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all text-sm flex items-center gap-2"
-            >
-              <span>↗</span>
-              <span>Transferir</span>
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setUiState(prev => ({ ...prev, showTransferModal: true }))}
+                className="px-4 py-2 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all text-sm flex items-center gap-2"
+              >
+                <span>↗</span>
+                <span>Transferir</span>
+              </button>
+              <button
+                onClick={() => setUiState(prev => ({ ...prev, showRechargeModal: true }))}
+                className="px-4 py-2 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all text-sm flex items-center gap-2"
+              >
+                <span>↓</span>
+                <span>Recargar</span>
+              </button>
+            </div>
           </div>
           <p className="text-2xl sm:text-3xl font-bold text-mono-purple">
             ${(balance || 0).toLocaleString('es-CO')}
@@ -778,6 +864,77 @@ const Dashboard = () => {
                 setUiState(prev => ({ ...prev, showTransferModal: false }));
               }}
             />
+          </div>
+        </div>
+      )}
+      {uiState.showRechargeModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-mono-gray p-6 rounded-2xl w-full max-w-md">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-white">Nueva Recarga</h3>
+              <button
+                onClick={() => {
+                  setUiState(prev => ({ ...prev, showRechargeModal: false }));
+                  setRechargeAmount('');
+                }}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Input de monto */}
+              <div>
+                <label className="block text-gray-400 mb-2">Monto a Recargar</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                  <input
+                    type="number"
+                    value={rechargeAmount}
+                    onChange={(e) => setRechargeAmount(e.target.value)}
+                    placeholder="0"
+                    className="w-full px-4 py-3 pl-8 bg-mono-dark border-0 rounded-xl text-white"
+                  />
+                </div>
+              </div>
+
+              {/* Montos predefinidos */}
+              <div>
+                <label className="block text-gray-400 mb-2">Montos Sugeridos</label>
+                <div className="grid grid-cols-3 gap-2">
+                  {predefinedAmounts.map((amount) => (
+                    <button
+                      key={amount}
+                      onClick={() => setRechargeAmount(amount.toString())}
+                      className="px-4 py-2 bg-mono-dark text-white rounded-xl hover:bg-opacity-80 transition-all"
+                    >
+                      ${amount.toLocaleString('es-CO')}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Botones de acción */}
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handlePSERecharge}
+                  disabled={!rechargeAmount || Number(rechargeAmount) <= 0 || uiState.isSubmitting}
+                  className="w-full px-4 py-3 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {uiState.isSubmitting ? 'Procesando...' : 'Continuar con PSE'}
+                </button>
+                <button
+                  onClick={() => {
+                    setUiState(prev => ({ ...prev, showRechargeModal: false }));
+                    setRechargeAmount('');
+                  }}
+                  className="w-full px-4 py-3 text-gray-400 hover:text-white transition-all"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

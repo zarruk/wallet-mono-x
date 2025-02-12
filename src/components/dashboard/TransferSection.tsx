@@ -13,6 +13,7 @@ export default function TransferSection({ banks, onTransfer }: TransferSectionPr
   const [formData, setFormData] = useState({
     amount: '',
     bankCode: '',
+    accountType: 'checking_account',
     accountNumber: '',
     documentType: 'CC',
     documentNumber: '',
@@ -100,6 +101,7 @@ export default function TransferSection({ banks, onTransfer }: TransferSectionPr
       setFormData({
         amount: '',
         bankCode: '',
+        accountType: 'checking_account',
         accountNumber: '',
         documentType: 'CC',
         documentNumber: '',

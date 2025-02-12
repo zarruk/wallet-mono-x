@@ -537,7 +537,7 @@ const Dashboard = () => {
 
   if (uiState.loading) {
     return (
-      <div className="min-h-screen bg-mono-dark flex items-center justify-center">
+      <div className="min-h-screen bg-mpf-beige flex items-center justify-center">
         <div className="text-mono-purple">Cargando...</div>
       </div>
     );
@@ -545,74 +545,74 @@ const Dashboard = () => {
 
   if (uiState.error) {
     return (
-      <div className="min-h-screen bg-mono-dark flex items-center justify-center">
+      <div className="min-h-screen bg-mpf-beige flex items-center justify-center">
         <div className="text-red-400">Error: {uiState.error}</div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-mono-dark p-4 sm:p-6 md:p-8">
+    <div className="min-h-screen bg-mpf-beige p-4 sm:p-6 md:p-8">
       <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6 md:space-y-8">
         {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:items-start mb-6 sm:mb-8 md:mb-12">
           <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
             {clientData?.company_logo_url ? (
-              <div className="w-16 h-16 rounded-full overflow-hidden bg-mono-gray">
+              <div className="w-24 h-24 rounded-full overflow-hidden bg-mono-gray">
                 <Image
                   src={clientData.company_logo_url}
                   alt="Logo de la empresa"
-                  width={64}
-                  height={64}
+                  width={96}
+                  height={96}
                   className="w-full h-full object-cover"
                 />
               </div>
             ) : (
-              <div className="w-16 h-16 rounded-full bg-mono-gray flex items-center justify-center">
-                <span className="text-2xl text-white">
+              <div className="w-24 h-24 rounded-full bg-mono-gray flex items-center justify-center">
+                <span className="text-3xl text-white">
                   {clientData?.company_name?.charAt(0) || 'C'}
                 </span>
               </div>
             )}
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-white mb-2">
+              <h1 className="text-2xl sm:text-3xl font-bold text-mpf-dark mb-2">
                 {clientData?.company_name}
               </h1>
-              <p className="text-sm sm:text-base text-gray-400">
+              <p className="text-base sm:text-lg font-semibold text-mpf-teal/80">
                 {clientData?.first_name} {clientData?.last_name}
               </p>
             </div>
           </div>
           <button
             onClick={() => router.push('/login')}
-            className="w-full sm:w-auto px-4 py-2 text-gray-300 hover:text-mono-purple transition-colors"
+            className="w-full sm:w-auto px-4 py-2 text-mpf-teal hover:text-mpf-teal/80 font-medium transition-colors"
           >
             Cerrar Sesión
           </button>
         </div>
 
         {/* Mostrar el saldo */}
-        <div className="p-4 sm:p-6 bg-mono-gray rounded-2xl">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-lg sm:text-xl font-semibold text-white">Saldo Disponible</h2>
-            <div className="flex gap-2">
+        <div className="p-6 sm:p-8 bg-white/70 backdrop-blur-sm shadow-lg rounded-2xl border border-gray-100/20">
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-base text-gray-500 font-medium">Saldo Disponible</h2>
+            <div className="flex gap-3">
               <button
                 onClick={() => setUiState(prev => ({ ...prev, showTransferModal: true }))}
-                className="px-4 py-2 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all text-sm flex items-center gap-2"
+                className="px-5 py-2.5 bg-mpf-teal hover:bg-mpf-teal/90 text-white font-medium rounded-xl transition-all text-sm flex items-center gap-2 shadow-sm"
               >
-                <span>↗</span>
+                <span className="text-lg">↗</span>
                 <span>Transferir</span>
               </button>
               <button
                 onClick={() => setUiState(prev => ({ ...prev, showRechargeModal: true }))}
-                className="px-4 py-2 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all text-sm flex items-center gap-2"
+                className="px-5 py-2.5 bg-mpf-teal hover:bg-mpf-teal/90 text-white font-medium rounded-xl transition-all text-sm flex items-center gap-2 shadow-sm"
               >
                 <span>↓</span>
                 <span>Recargar</span>
               </button>
             </div>
           </div>
-          <p className="text-2xl sm:text-3xl font-bold text-mono-purple">
+          <p className="text-4xl sm:text-5xl font-bold text-mpf-dark tracking-tight">
             ${(balance || 0).toLocaleString('es-CO')}
           </p>
         </div>
@@ -621,8 +621,8 @@ const Dashboard = () => {
           {/* Columna Principal */}
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Sección de Movimientos */}
-            <div className="bg-mono-gray rounded-2xl p-4 sm:p-6">
-              <h2 className="text-xl font-semibold text-white mb-4">Últimos Movimientos</h2>
+            <div className="bg-white/70 backdrop-blur-sm shadow-lg rounded-2xl p-6 sm:p-8 border border-gray-100/20">
+              <h2 className="text-xl font-semibold text-mpf-dark mb-6 tracking-tight">Últimos Movimientos</h2>
               <div className="space-y-3 sm:space-y-4">
                 {uiState.transactionsLoading ? (
                   <div className="text-center text-gray-400">Cargando movimientos...</div>
@@ -633,26 +633,20 @@ const Dashboard = () => {
                 ) : (
                   <>
                     {transactions.map((transaction) => (
-                      <div key={transaction.id} className="flex justify-between items-center p-3 sm:p-4 bg-mono-dark/50 rounded-xl">
+                      <div key={transaction.id} className="flex justify-between items-center p-4 sm:p-5 bg-mpf-warmGray hover:bg-white/60 rounded-xl transition-all border border-gray-100/20">
                         <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded-full ${
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
                             transaction.operation_type === 'credit' 
-                              ? 'bg-green-500/20' 
-                              : 'bg-red-500/20'
-                          } flex items-center justify-center`}>
-                            <span className={
-                              transaction.operation_type === 'credit' 
-                                ? 'text-green-500' 
-                                : 'text-red-500'
-                            }>
-                              {transaction.operation_type === 'credit' ? '↑' : '↓'}
-                            </span>
+                              ? 'bg-emerald-100 text-emerald-700' 
+                              : 'bg-red-100 text-red-700'
+                          }`}>
+                            <span className="text-lg">{transaction.operation_type === 'credit' ? '↑' : '↓'}</span>
                           </div>
                           <div>
-                            <p className="text-white">
+                            <p className="text-mpf-dark font-medium">
                               {transaction.description || 'Descripción no disponible'}
                             </p>
-                            <p className="text-sm text-gray-400">
+                            <p className="text-sm text-gray-500">
                               {new Date(transaction.transaction_at).toLocaleDateString('es-ES', {
                                 day: 'numeric',
                                 month: 'short',
@@ -663,10 +657,10 @@ const Dashboard = () => {
                             </p>
                           </div>
                         </div>
-                        <p className={`font-medium ${
+                        <p className={`font-semibold ${
                           transaction.operation_type === 'credit' 
-                            ? 'text-green-500' 
-                            : 'text-red-400'
+                            ? 'text-emerald-600' 
+                            : 'text-red-600'
                         }`}>
                           ${(transaction.amount.amount / 100).toLocaleString('es-CO')}
                         </p>
@@ -704,9 +698,9 @@ const Dashboard = () => {
           {/* Columna Lateral */}
           <div className="space-y-4 sm:space-y-6">
             {/* Sección de Tarjetas */}
-            <div className="bg-mono-gray rounded-2xl p-4 sm:p-6">
-              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 sm:gap-0 mb-4 sm:mb-6">
-                <h2 className="text-lg sm:text-xl font-semibold text-white">Tarjetas</h2>
+            <div className="bg-white shadow-lg rounded-2xl p-6 sm:p-8 border border-gray-100">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-mpf-dark">Tarjetas</h2>
                 <button
                   onClick={() => {
                     if (!clientData?.birth_date) {
@@ -715,7 +709,7 @@ const Dashboard = () => {
                       setUiState(prev => ({ ...prev, showNicknameModal: true }));
                     }
                   }}
-                  className="w-full sm:w-auto px-4 py-2 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all text-sm"
+                  className="w-full sm:w-auto px-4 py-2 bg-mpf-teal text-white rounded-xl hover:bg-opacity-90 transition-all text-sm"
                 >
                   Crear Tarjeta
                 </button>
@@ -736,18 +730,21 @@ const Dashboard = () => {
                           key={card.id}
                           className="flex-none w-[280px] sm:w-[300px] snap-center"
                         >
-                          <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-xl p-4 sm:p-6 aspect-[1.6/1] relative overflow-hidden transform transition-all duration-300 hover:scale-105">
+                          <div className="bg-gradient-to-r from-mpf-teal to-[#004544] rounded-xl p-6 aspect-[1.6/1] relative overflow-hidden transform transition-all duration-300 hover:scale-105">
+                            <div className="absolute inset-0 bg-gradient-to-tr from-white/5 to-transparent"></div>
+                            
                             <div className="flex justify-between items-start mb-8">
-                              <div className="w-10 h-6 bg-yellow-400/90 rounded"></div>
+                              <div className="w-12 h-8 bg-gradient-to-r from-yellow-400 to-yellow-300 rounded-md"></div>
                               <Image 
                                 src={card.card_art_url || "https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcS3uAjU_SrHLug3x9S3K2CmHs1HxtWGlTQYaA&s"} 
                                 alt="Card" 
                                 width={300} 
                                 height={200} 
-                                className="w-12 h-8 object-contain"
-                                />                            </div>
-                            <div className="space-y-2">
-                              <p className="text-white/60 text-sm">{card.nickname}</p>
+                                className="w-14 h-10 object-contain"
+                              />
+                            </div>
+                            <div className="space-y-2 relative z-10">
+                              <p className="text-white/70 text-sm font-medium">{card.nickname}</p>
                               <p className="text-white text-lg font-medium tracking-wider">
                                 **** **** **** {card.last_four}
                               </p>
@@ -765,18 +762,18 @@ const Dashboard = () => {
       </div>
       {uiState.showBirthDateModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-mono-gray p-4 sm:p-6 rounded-2xl w-full max-w-[90%] sm:max-w-md">
-            <h3 className="text-xl font-semibold text-white mb-4">
+          <div className="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl w-full max-w-md shadow-xl border border-gray-100/20">
+            <h3 className="text-xl font-semibold text-mpf-dark mb-2">
               Fecha de Nacimiento
             </h3>
-            <p className="text-gray-400 mb-4">
+            <p className="text-gray-600 mb-4">
               Para crear tu tarjeta, necesitamos tu fecha de nacimiento.
             </p>
             <input
               type="date"
               value={birthDate}
               onChange={(e) => setBirthDate(e.target.value)}
-              className="w-full px-4 py-3 bg-mono-dark border-0 rounded-xl text-white mb-4"
+              className="w-full px-4 py-3 bg-mpf-warmGray border border-gray-200/50 rounded-xl text-mpf-dark placeholder-gray-400 focus:ring-2 focus:ring-mpf-teal/20 focus:border-mpf-teal transition-all"
             />
             <div className="flex justify-end gap-4">
               <button
@@ -799,7 +796,7 @@ const Dashboard = () => {
                   }));
                 }}
                 disabled={!birthDate || uiState.isSubmitting}
-                className="px-6 py-2 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all disabled:opacity-50"
+                className="px-6 py-2 bg-mpf-teal text-white rounded-xl hover:bg-opacity-90 transition-all disabled:opacity-50"
               >
                 Continuar
               </button>
@@ -809,11 +806,11 @@ const Dashboard = () => {
       )}
       {uiState.showNicknameModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4">
-          <div className="bg-mono-gray p-4 sm:p-6 rounded-2xl w-full max-w-[90%] sm:max-w-md">
-            <h3 className="text-xl font-semibold text-white mb-4">
+          <div className="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl w-full max-w-md shadow-xl border border-gray-100/20">
+            <h3 className="text-xl font-semibold text-mpf-dark mb-2">
               Nombre de la Tarjeta
             </h3>
-            <p className="text-gray-400 mb-4">
+            <p className="text-gray-600 mb-4">
               Asigna un nombre a tu nueva tarjeta para identificarla fácilmente.
             </p>
             <input
@@ -821,7 +818,7 @@ const Dashboard = () => {
               value={cardNickname}
               onChange={(e) => setCardNickname(e.target.value)}
               placeholder="Ej: Mi Tarjeta Personal"
-              className="w-full px-4 py-3 bg-mono-dark border-0 rounded-xl text-white mb-4"
+              className="w-full px-4 py-3 bg-mpf-warmGray border border-gray-200/50 rounded-xl text-mpf-dark placeholder-gray-400 focus:ring-2 focus:ring-mpf-teal/20 focus:border-mpf-teal transition-all"
             />
             <div className="flex justify-end gap-4">
               <button
@@ -837,7 +834,7 @@ const Dashboard = () => {
               <button
                 onClick={handleCreateCard}
                 disabled={!cardNickname.trim() || uiState.isSubmitting}
-                className="px-6 py-2 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all disabled:opacity-50"
+                className="px-6 py-2 bg-mpf-teal text-white rounded-xl hover:bg-opacity-90 transition-all disabled:opacity-50"
               >
                 {uiState.isSubmitting ? 'Creando...' : 'Crear'}
               </button>
@@ -847,9 +844,9 @@ const Dashboard = () => {
       )}
       {uiState.showTransferModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50 overflow-y-auto">
-          <div className="bg-mono-gray p-4 sm:p-6 rounded-2xl w-full max-w-[90%] sm:max-w-2xl my-8">
+          <div className="bg-white p-6 sm:p-8 rounded-2xl w-full max-w-2xl my-8">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-semibold text-white">Nueva Transferencia</h3>
+              <h3 className="text-xl font-semibold text-mpf-dark">Nueva Transferencia</h3>
               <button
                 onClick={() => setUiState(prev => ({ ...prev, showTransferModal: false }))}
                 className="text-gray-400 hover:text-white"
@@ -869,9 +866,9 @@ const Dashboard = () => {
       )}
       {uiState.showRechargeModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
-          <div className="bg-mono-gray p-6 rounded-2xl w-full max-w-md">
+          <div className="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl w-full max-w-md shadow-xl border border-gray-100/20">
             <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-semibold text-white">Nueva Recarga</h3>
+              <h3 className="text-xl font-semibold text-mpf-dark">Nueva Recarga</h3>
               <button
                 onClick={() => {
                   setUiState(prev => ({ ...prev, showRechargeModal: false }));
@@ -894,7 +891,7 @@ const Dashboard = () => {
                     value={rechargeAmount}
                     onChange={(e) => setRechargeAmount(e.target.value)}
                     placeholder="0"
-                    className="w-full px-4 py-3 pl-8 bg-mono-dark border-0 rounded-xl text-white"
+                    className="w-full px-4 py-3 pl-8 bg-mpf-warmGray border border-gray-200/50 rounded-xl text-mpf-dark placeholder-gray-400 focus:ring-2 focus:ring-mpf-teal/20 focus:border-mpf-teal transition-all"
                   />
                 </div>
               </div>
@@ -907,7 +904,7 @@ const Dashboard = () => {
                     <button
                       key={amount}
                       onClick={() => setRechargeAmount(amount.toString())}
-                      className="px-4 py-2 bg-mono-dark text-white rounded-xl hover:bg-opacity-80 transition-all"
+                      className="px-4 py-2 bg-gray-50 text-mpf-dark border border-gray-200 rounded-xl hover:bg-gray-100 transition-all font-medium"
                     >
                       ${amount.toLocaleString('es-CO')}
                     </button>
@@ -920,7 +917,7 @@ const Dashboard = () => {
                 <button
                   onClick={handlePSERecharge}
                   disabled={!rechargeAmount || Number(rechargeAmount) <= 0 || uiState.isSubmitting}
-                  className="w-full px-4 py-3 bg-mono-purple text-white rounded-xl hover:bg-opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full px-4 py-3 bg-mpf-teal text-white rounded-xl hover:bg-opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {uiState.isSubmitting ? 'Procesando...' : 'Continuar con PSE'}
                 </button>

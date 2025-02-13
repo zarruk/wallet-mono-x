@@ -86,6 +86,8 @@ interface UIState {
   showTransferModal: boolean;
   showRechargeModal: boolean;
   isSubmitting: boolean;
+  showFICWithdrawModal: boolean;
+  withdrawAmount: string;
 }
 
 const Dashboard = () => {
@@ -102,6 +104,8 @@ const Dashboard = () => {
     showTransferModal: false,
     showRechargeModal: false,
     isSubmitting: false,
+    showFICWithdrawModal: false,
+    withdrawAmount: '',
   });
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
@@ -114,7 +118,18 @@ const Dashboard = () => {
   const [cardNickname, setCardNickname] = useState('');
   const [banks, setBanks] = useState<Bank[]>([]);
   const [rechargeAmount, setRechargeAmount] = useState('');
+  const [withdrawAmount, setWithdrawAmount] = useState('');
   const predefinedAmounts = [50000, 100000, 200000];
+  const [selectedInvestment, setSelectedInvestment] = useState<{
+    name: string;
+    type: string;
+    return: string;
+    minAmount: number;
+    description?: string;
+    term?: string;
+    risk?: string;
+  } | null>(null);
+  const [investmentAmount, setInvestmentAmount] = useState('');
 
   const fetchUserCards = useCallback(async () => {
     if (!clientData?.id) return;
@@ -535,6 +550,106 @@ const Dashboard = () => {
     }
   };
 
+  const handleFICWithdraw = async () => {
+    try {
+      setUiState(prev => ({ ...prev, isSubmitting: true }));
+      
+      const response = await fetch('/api/mono/v1/recharges', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: Number(withdrawAmount),
+          userId: clientData?.id,
+          accountId: clientData?.mono_ledger_account_id,
+          description: 'Retiro FIC Accival Vista'
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al procesar el retiro');
+      }
+
+      // Actualizar el balance
+      if (clientData?.mono_ledger_account_id) {
+        const balanceResponse = await fetch(
+          `/api/mono/v1/balance?account_id=${clientData.mono_ledger_account_id}&_t=${Date.now()}`
+        );
+        const balanceData = await balanceResponse.json();
+        if (balanceResponse.ok) {
+          setBalance(Number(balanceData.available) / 100);
+        }
+      }
+
+      // Cerrar modal y limpiar
+      setUiState(prev => ({ ...prev, showFICWithdrawModal: false }));
+      setWithdrawAmount('');
+      
+      // Actualizar transacciones
+      fetchTransactions();
+
+      alert('¡Retiro exitoso!');
+    } catch (error: any) {
+      console.error('Error:', error);
+      alert('Error al procesar el retiro. Por favor intenta nuevamente.');
+    } finally {
+      setUiState(prev => ({ ...prev, isSubmitting: false }));
+    }
+  };
+
+  const handleInvestment = async () => {
+    try {
+      setUiState(prev => ({ ...prev, isSubmitting: true }));
+      
+      const response = await fetch('/api/mono/v1/recharges', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          amount: Number(investmentAmount),
+          userId: clientData?.id,
+          accountId: clientData?.mono_ledger_account_id,
+          description: `Inversión en ${selectedInvestment.name}`
+        })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Error al procesar la inversión');
+      }
+
+      // Actualizar balance
+      if (clientData?.mono_ledger_account_id) {
+        const balanceResponse = await fetch(
+          `/api/mono/v1/balance?account_id=${clientData.mono_ledger_account_id}&_t=${Date.now()}`
+        );
+        const balanceData = await balanceResponse.json();
+        if (balanceResponse.ok) {
+          setBalance(Number(balanceData.available) / 100);
+        }
+      }
+
+      // Actualizar transacciones
+      fetchTransactions();
+
+      // Limpiar y cerrar modal
+      setInvestmentAmount('');
+      setSelectedInvestment(null);
+      
+      alert('¡Inversión exitosa!');
+    } catch (error: any) {
+      console.error('Error:', error);
+      alert('Error al procesar la inversión. Por favor intenta nuevamente.');
+    } finally {
+      setUiState(prev => ({ ...prev, isSubmitting: false }));
+    }
+  };
+
   if (uiState.loading) {
     return (
       <div className="min-h-screen bg-mpf-beige flex items-center justify-center">
@@ -558,18 +673,18 @@ const Dashboard = () => {
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4 sm:items-start mb-6 sm:mb-8 md:mb-12">
           <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left">
             {clientData?.company_logo_url ? (
-              <div className="w-24 h-24 rounded-full overflow-hidden bg-mono-gray">
+              <div className="w-40 h-40 rounded-full overflow-hidden bg-mono-gray">
                 <Image
                   src={clientData.company_logo_url}
                   alt="Logo de la empresa"
-                  width={96}
-                  height={96}
+                  width={160}
+                  height={160}
                   className="w-full h-full object-cover"
                 />
               </div>
             ) : (
-              <div className="w-24 h-24 rounded-full bg-mono-gray flex items-center justify-center">
-                <span className="text-3xl text-white">
+              <div className="w-40 h-40 rounded-full bg-mono-gray flex items-center justify-center">
+                <span className="text-5xl text-white">
                   {clientData?.company_name?.charAt(0) || 'C'}
                 </span>
               </div>
@@ -621,76 +736,55 @@ const Dashboard = () => {
           {/* Columna Principal */}
           <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Sección de Movimientos */}
-            <div className="bg-white/70 backdrop-blur-sm shadow-lg rounded-2xl p-6 sm:p-8 border border-gray-100/20">
-              <h2 className="text-xl font-semibold text-mpf-dark mb-6 tracking-tight">Últimos Movimientos</h2>
-              <div className="space-y-3 sm:space-y-4">
-                {uiState.transactionsLoading ? (
-                  <div className="text-center text-gray-400">Cargando movimientos...</div>
-                ) : !transactions ? (
-                  <div className="text-center text-gray-400">Error al cargar movimientos</div>
-                ) : transactions.length === 0 ? (
-                  <div className="text-center text-gray-400">No hay movimientos disponibles</div>
-                ) : (
-                  <>
-                    {transactions.map((transaction) => (
-                      <div key={transaction.id} className="flex justify-between items-center p-4 sm:p-5 bg-mpf-warmGray hover:bg-white/60 rounded-xl transition-all border border-gray-100/20">
-                        <div className="flex items-center gap-4">
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+            <div className="flex-1">
+              <div className="bg-white/70 backdrop-blur-sm shadow-lg rounded-2xl p-6 sm:p-8 border border-gray-100/20 h-full">
+                <div className="min-h-[calc(100vh-12rem)] flex flex-col">
+                  <div className="flex justify-between items-center mb-6">
+                    <h2 className="text-xl font-semibold text-mpf-dark">Últimos Movimientos</h2>
+                  </div>
+                  <div className="space-y-2 flex-1">
+                    {uiState.transactionsLoading ? (
+                      <div className="text-center py-8 text-gray-500">Cargando movimientos...</div>
+                    ) : transactions.length === 0 ? (
+                      <div className="text-center py-8 text-gray-500">No hay movimientos para mostrar</div>
+                    ) : (
+                      transactions.map((transaction) => (
+                        <div key={transaction.id} className="flex justify-between items-center p-4 sm:p-5 bg-mpf-warmGray hover:bg-white/60 rounded-xl transition-all border border-gray-100/20">
+                          <div className="flex items-center gap-4">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                              transaction.operation_type === 'credit' 
+                                ? 'bg-emerald-100 text-emerald-700' 
+                                : 'bg-red-100 text-red-700'
+                            }`}>
+                              <span className="text-lg">{transaction.operation_type === 'credit' ? '↑' : '↓'}</span>
+                            </div>
+                            <div>
+                              <p className="text-mpf-dark font-medium">
+                                {transaction.description || 'Descripción no disponible'}
+                              </p>
+                              <p className="text-sm text-gray-500">
+                                {new Date(transaction.transaction_at).toLocaleDateString('es-ES', {
+                                  day: 'numeric',
+                                  month: 'short',
+                                  year: 'numeric',
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
+                          </div>
+                          <p className={`font-semibold ${
                             transaction.operation_type === 'credit' 
-                              ? 'bg-emerald-100 text-emerald-700' 
-                              : 'bg-red-100 text-red-700'
+                              ? 'text-emerald-600' 
+                              : 'text-red-600'
                           }`}>
-                            <span className="text-lg">{transaction.operation_type === 'credit' ? '↑' : '↓'}</span>
-                          </div>
-                          <div>
-                            <p className="text-mpf-dark font-medium">
-                              {transaction.description || 'Descripción no disponible'}
-                            </p>
-                            <p className="text-sm text-gray-500">
-                              {new Date(transaction.transaction_at).toLocaleDateString('es-ES', {
-                                day: 'numeric',
-                                month: 'short',
-                                year: 'numeric',
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </p>
-                          </div>
+                            ${(transaction.amount.amount / 100).toLocaleString('es-CO')}
+                          </p>
                         </div>
-                        <p className={`font-semibold ${
-                          transaction.operation_type === 'credit' 
-                            ? 'text-emerald-600' 
-                            : 'text-red-600'
-                        }`}>
-                          ${(transaction.amount.amount / 100).toLocaleString('es-CO')}
-                        </p>
-                      </div>
-                    ))}
-
-                    {/* Paginación */}
-                    {totalPages > 1 && (
-                      <div className="flex justify-center gap-4 mt-6">
-                        <button
-                          onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                          disabled={currentPage === 1}
-                          className="px-4 py-2 text-sm text-gray-400 hover:text-mono-purple disabled:opacity-50"
-                        >
-                          Anterior
-                        </button>
-                        <span className="text-gray-400">
-                          Página {currentPage} de {totalPages}
-                        </span>
-                        <button
-                          onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                          disabled={currentPage === totalPages}
-                          className="px-4 py-2 text-sm text-gray-400 hover:text-mono-purple disabled:opacity-50"
-                        >
-                          Siguiente
-                        </button>
-                      </div>
+                      ))
                     )}
-                  </>
-                )}
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -756,6 +850,148 @@ const Dashboard = () => {
                   </div>
                 </div>
               )}
+            </div>
+
+            {/* Nueva sección de Otros Productos Financieros */}
+            <div className="bg-white/70 backdrop-blur-sm shadow-lg rounded-2xl p-6 sm:p-8 border border-gray-100/20">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-mpf-dark">Otros Productos</h2>
+              </div>
+              
+              {/* FIC Accival Vista */}
+              <div className="space-y-4">
+                <div className="p-4 bg-mpf-warmGray rounded-xl border border-gray-200/50 hover:bg-white/60 transition-all">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-medium text-mpf-dark">FIC Accival Vista</h3>
+                    <span className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded-full">Fondo</span>
+                  </div>
+                  <p className="text-2xl font-bold text-mpf-dark mb-1">
+                    ${(25_474_100).toLocaleString('es-CO')}
+                  </p>
+                  <div className="flex justify-between items-center">
+                    <p className="text-sm text-gray-500">Disponible para retiro inmediato</p>
+                    <button
+                      onClick={() => setUiState(prev => ({ ...prev, showFICWithdrawModal: true }))}
+                      className="px-4 py-2 bg-mpf-teal text-white text-sm rounded-xl hover:bg-opacity-90 transition-all"
+                    >
+                      Retirar
+                    </button>
+                  </div>
+                </div>
+
+                {/* CDT Skandia */}
+                <div className="p-4 bg-mpf-warmGray rounded-xl border border-gray-200/50 hover:bg-white/60 transition-all">
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-medium text-mpf-dark">CDT Skandia</h3>
+                    <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">CDT</span>
+                  </div>
+                  <p className="text-2xl font-bold text-mpf-dark mb-1">
+                    ${(7_000_000).toLocaleString('es-CO')}
+                  </p>
+                  <div className="flex justify-between items-center">
+                    <div className="flex justify-between text-sm text-gray-500">
+                      <span>Plazo: 6 meses</span>
+                      <span className="ml-4">Rentabilidad: 11.5%</span>
+                    </div>
+                    <button
+                      disabled
+                      className="px-4 py-2 bg-gray-200 text-gray-400 text-sm rounded-xl cursor-not-allowed"
+                      title="No disponible hasta cumplir el plazo"
+                    >
+                      Retirar
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Agregar después del módulo de Otros Productos */}
+            <div className="bg-white/70 backdrop-blur-sm shadow-lg rounded-2xl p-6 sm:p-8 border border-gray-100/20">
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-semibold text-mpf-dark">Oportunidades de Inversión</h2>
+              </div>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* FIC Renta Alta Davivienda */}
+                <div 
+                  onClick={() => setSelectedInvestment({
+                    name: 'FIC Renta Alta Davivienda',
+                    type: 'Fondo',
+                    return: '12.8%',
+                    minAmount: 200000,
+                    description: 'Fondo de inversión colectiva con perfil moderado, ideal para inversiones a mediano plazo.',
+                    risk: 'Moderado',
+                    term: 'Retiro disponible en 3 días hábiles'
+                  })}
+                  className="p-4 bg-mpf-warmGray rounded-xl border border-gray-200/50 hover:bg-white/60 transition-all cursor-pointer"
+                >
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-medium text-mpf-dark">FIC Renta Alta</h3>
+                    <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full">12.8%</span>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">Davivienda</p>
+                </div>
+
+                {/* CDT Digital Bancolombia */}
+                <div 
+                  onClick={() => setSelectedInvestment({
+                    name: 'CDT Digital Bancolombia',
+                    type: 'CDT',
+                    return: '11.2%',
+                    minAmount: 1000000,
+                    description: 'Certificado de depósito a término con tasa fija garantizada.',
+                    term: '12 meses',
+                    risk: 'Bajo'
+                  })}
+                  className="p-4 bg-mpf-warmGray rounded-xl border border-gray-200/50 hover:bg-white/60 transition-all cursor-pointer"
+                >
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-medium text-mpf-dark">CDT Digital</h3>
+                    <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">11.2%</span>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">Bancolombia</p>
+                </div>
+
+                {/* FIC Sumar */}
+                <div 
+                  onClick={() => setSelectedInvestment({
+                    name: 'FIC Sumar Fiduciaria Bogotá',
+                    type: 'Fondo',
+                    return: '10.5%',
+                    minAmount: 500000,
+                    description: 'Fondo de inversión colectiva con perfil conservador y liquidez diaria.',
+                    risk: 'Bajo',
+                    term: 'Disponibilidad diaria'
+                  })}
+                  className="p-4 bg-mpf-warmGray rounded-xl border border-gray-200/50 hover:bg-white/60 transition-all cursor-pointer"
+                >
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-medium text-mpf-dark">FIC Sumar</h3>
+                    <span className="text-xs px-2 py-1 bg-purple-100 text-purple-700 rounded-full">10.5%</span>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">Fiduciaria Bogotá</p>
+                </div>
+
+                {/* Fondo Indexado */}
+                <div 
+                  onClick={() => setSelectedInvestment({
+                    name: 'Fondo Indexado Colcap',
+                    type: 'Acciones',
+                    return: '15.3%',
+                    minAmount: 1000000,
+                    description: 'Fondo que replica el comportamiento del índice Colcap de la Bolsa de Valores de Colombia.',
+                    risk: 'Alto',
+                    term: 'Recomendado más de 3 años'
+                  })}
+                  className="p-4 bg-mpf-warmGray rounded-xl border border-gray-200/50 hover:bg-white/60 transition-all cursor-pointer"
+                >
+                  <div className="flex justify-between items-start">
+                    <h3 className="font-medium text-mpf-dark">Fondo Colcap</h3>
+                    <span className="text-xs px-2 py-1 bg-orange-100 text-orange-700 rounded-full">15.3%</span>
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">Valores Bancolombia</p>
+                </div>
+              </div>
             </div>
           </div>
         </div>
@@ -931,6 +1167,118 @@ const Dashboard = () => {
                   Cancelar
                 </button>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {uiState.showFICWithdrawModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl w-full max-w-md shadow-xl border border-gray-100/20">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-semibold text-mpf-dark">Retiro FIC Accival Vista</h3>
+              <button
+                onClick={() => {
+                  setUiState(prev => ({ ...prev, showFICWithdrawModal: false }));
+                  setWithdrawAmount('');
+                }}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              <div>
+                <label className="block text-gray-400 mb-2">Monto a Retirar</label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                  <input
+                    type="number"
+                    value={withdrawAmount}
+                    onChange={(e) => setWithdrawAmount(e.target.value)}
+                    placeholder="0"
+                    max={25474100}
+                    className="w-full px-4 py-3 pl-8 bg-mpf-warmGray border border-gray-200/50 rounded-xl text-mpf-dark placeholder-gray-400 focus:ring-2 focus:ring-mpf-teal/20 focus:border-mpf-teal transition-all"
+                  />
+                </div>
+                <p className="text-sm text-gray-500 mt-2">
+                  Máximo disponible: ${(25_474_100).toLocaleString('es-CO')}
+                </p>
+              </div>
+
+              <div className="flex flex-col gap-2">
+                <button
+                  onClick={handleFICWithdraw}
+                  disabled={!withdrawAmount || Number(withdrawAmount) <= 0 || Number(withdrawAmount) > 25474100 || uiState.isSubmitting}
+                  className="w-full px-4 py-3 bg-mpf-teal text-white rounded-xl hover:bg-opacity-90 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {uiState.isSubmitting ? 'Procesando...' : 'Confirmar Retiro'}
+                </button>
+                <button
+                  onClick={() => {
+                    setUiState(prev => ({ ...prev, showFICWithdrawModal: false }));
+                    setWithdrawAmount('');
+                  }}
+                  className="w-full px-4 py-3 text-gray-400 hover:text-white transition-all"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+      {selectedInvestment && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white/90 backdrop-blur-sm p-6 sm:p-8 rounded-2xl w-full max-w-md shadow-xl border border-gray-100/20">
+            <div className="flex justify-between items-start mb-6">
+              <div>
+                <h3 className="text-xl font-semibold text-mpf-dark mb-1">{selectedInvestment.name}</h3>
+                <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded-full">{selectedInvestment.type}</span>
+              </div>
+              <button
+                onClick={() => setSelectedInvestment(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div className="p-4 bg-mpf-warmGray rounded-xl">
+                <p className="text-sm text-gray-500">Rentabilidad</p>
+                <p className="text-2xl font-bold text-emerald-600">{selectedInvestment.return}</p>
+              </div>
+
+              <div className="space-y-3">
+                <p className="text-gray-600">{selectedInvestment.description}</p>
+                
+                <div>
+                  <label className="block text-gray-400 mb-2">Monto a Invertir</label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400">$</span>
+                    <input
+                      type="number"
+                      value={investmentAmount}
+                      onChange={(e) => setInvestmentAmount(e.target.value)}
+                      placeholder="0"
+                      min={selectedInvestment.minAmount}
+                      className="w-full px-4 py-3 pl-8 bg-mpf-warmGray border border-gray-200/50 rounded-xl text-mpf-dark placeholder-gray-400 focus:ring-2 focus:ring-mpf-teal/20 focus:border-mpf-teal transition-all"
+                    />
+                  </div>
+                  <p className="text-sm text-gray-500 mt-2">
+                    Mínimo: ${selectedInvestment.minAmount.toLocaleString('es-CO')}
+                  </p>
+                </div>
+              </div>
+
+              <button
+                className="w-full px-4 py-3 bg-mpf-teal text-white rounded-xl hover:bg-opacity-90 transition-all font-medium disabled:opacity-50"
+                onClick={handleInvestment}
+                disabled={!investmentAmount || Number(investmentAmount) < selectedInvestment.minAmount || uiState.isSubmitting}
+              >
+                {uiState.isSubmitting ? 'Procesando...' : 'Confirmar Inversión'}
+              </button>
             </div>
           </div>
         </div>

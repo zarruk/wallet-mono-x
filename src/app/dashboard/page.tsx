@@ -399,9 +399,12 @@ const Dashboard = () => {
 
   // Tercer useEffect para transacciones
   useEffect(() => {
-    if (clientData?.mono_ledger_account_id) {
-      fetchTransactions();
-    }
+    const fetchData = async () => {
+      if (clientData?.mono_ledger_account_id) {
+        await fetchTransactions();
+      }
+    };
+    fetchData();
   }, [clientData?.mono_ledger_account_id, fetchTransactions]);
 
   const handleTransfer = async (transferData: any) => {
@@ -602,9 +605,14 @@ const Dashboard = () => {
 
   const handleInvestment = async () => {
     try {
+      // Validar que selectedInvestment no sea null
+      if (!selectedInvestment) {
+        throw new Error('No se ha seleccionado ninguna inversión');
+      }
+
       setUiState(prev => ({ ...prev, isSubmitting: true }));
       
-      const response = await fetch('/api/mono/v1/recharges', {
+      const response = await fetch('/api/mono/v1/withdrawals', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -613,7 +621,7 @@ const Dashboard = () => {
           amount: Number(investmentAmount),
           userId: clientData?.id,
           accountId: clientData?.mono_ledger_account_id,
-          description: `Inversión en ${selectedInvestment.name}`
+          description: `Inversión en ${selectedInvestment?.name || 'producto financiero'}`
         })
       });
 
@@ -713,7 +721,7 @@ const Dashboard = () => {
             <div className="flex gap-3">
               <button
                 onClick={() => setUiState(prev => ({ ...prev, showTransferModal: true }))}
-                className="px-5 py-2.5 bg-mpf-teal hover:bg-mpf-teal/90 text-white font-medium rounded-xl transition-all text-sm flex items-center gap-2 shadow-sm"
+                className="px-5 py-2.5 bg-white hover:bg-gray-50 text-mpf-dark border border-gray-200 font-medium rounded-xl transition-all text-sm flex items-center gap-2"
               >
                 <span className="text-lg">↗</span>
                 <span>Transferir</span>
@@ -732,13 +740,13 @@ const Dashboard = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* Columna Principal */}
-          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
-            {/* Sección de Movimientos */}
-            <div className="flex-1">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6 h-full">
+          {/* Columna Principal - ajustar para que ocupe todo el alto */}
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6 h-full flex flex-col">
+            {/* Sección de Movimientos - hacer que se expanda */}
+            <div className="flex-1 h-full">
               <div className="bg-white/70 backdrop-blur-sm shadow-lg rounded-2xl p-6 sm:p-8 border border-gray-100/20 h-full">
-                <div className="min-h-[calc(100vh-12rem)] flex flex-col">
+                <div className="h-full flex flex-col">
                   <div className="flex justify-between items-center mb-6">
                     <h2 className="text-xl font-semibold text-mpf-dark">Últimos Movimientos</h2>
                   </div>
@@ -789,7 +797,7 @@ const Dashboard = () => {
             </div>
           </div>
 
-          {/* Columna Lateral */}
+          {/* Columna Lateral - mantener su altura natural */}
           <div className="space-y-4 sm:space-y-6">
             {/* Sección de Tarjetas */}
             <div className="bg-white shadow-lg rounded-2xl p-6 sm:p-8 border border-gray-100">
@@ -803,7 +811,7 @@ const Dashboard = () => {
                       setUiState(prev => ({ ...prev, showNicknameModal: true }));
                     }
                   }}
-                  className="w-full sm:w-auto px-4 py-2 bg-mpf-teal text-white rounded-xl hover:bg-opacity-90 transition-all text-sm"
+                  className="w-full sm:w-auto px-4 py-2 bg-white hover:bg-gray-50 text-mpf-dark border border-gray-200 rounded-xl transition-all text-sm"
                 >
                   Crear Tarjeta
                 </button>
@@ -872,7 +880,7 @@ const Dashboard = () => {
                     <p className="text-sm text-gray-500">Disponible para retiro inmediato</p>
                     <button
                       onClick={() => setUiState(prev => ({ ...prev, showFICWithdrawModal: true }))}
-                      className="px-4 py-2 bg-mpf-teal text-white text-sm rounded-xl hover:bg-opacity-90 transition-all"
+                      className="px-4 py-2 bg-white hover:bg-gray-50 text-mpf-dark border border-gray-200 text-sm rounded-xl transition-all"
                     >
                       Retirar
                     </button>
